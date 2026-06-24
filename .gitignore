@@ -1,0 +1,45 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# --- Secrets / creds (NEVER commit) ---
+.env
+*.env
+*.key
+*.pem
+credentials.json
+secrets.*
+
+# --- Regenerable / sensitive lookups: commercial pricing + customer data ---
+# (pricebook, HubSpot export, SF lookups). Commit only *.example.csv templates.
+data/
+!data/*.example.csv
+outputs/
+
+# --- Filled order sheets = customer PII (names/emails/phones/addresses) ---
+# legacy inputs/ + per-league <league>/data/. Commit only *.example.csv.
+inputs/
+!inputs/*.example.csv
+*/data/
+
+# --- Local agent/editor config (per-user; not shared) ---
+.claude/
+
+# --- Archives / scratch ---
+*.zip
+*.tmp

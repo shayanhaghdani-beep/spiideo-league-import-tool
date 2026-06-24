@@ -1,0 +1,9 @@
+GTM LEAGUE DATABASE - ALL REPS,,,,,,,,,,,,,,,,,,,,,,,,,
+"One row per league per rep. Each rep adds their own rows. Period column slices it into H2 2026 top 5, 2027 top 6, and 2027 expansions. Filter by Rep Name to see one rep at a time.",,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,
+Rep Name,Territory,Submitted Date,Period,Priority Rank,League,Sport,Tier,GTM Motion,Product,Deal Type,ARR (€),Target Close,Decision Maker / Title,Entry Point / Goal,Competition / Risk,What Marketing Can Do,Why / Strategic Rationale,New Product to Add,Clubs/Teams to Activate,Prerequisites,Notes,Scope,SF League / Account ID,Competitor + Renewal Year,Product / Feature Ask
+Alice Anderson,UK,2026-01-15,H2 2026,1,Premier League,Football/Soccer,Tier 1,Top-down,Spiideo Perform PRO,New,"50,000",2026-09-30,Head of Football,Pilot at 2 clubs,Veo,Case study,Brand prestige,,Arsenal; Chelsea,,Important deal,League-wide rollout,,,
+Alice Anderson,UK,2026-01-15,H2 2026,2,EFL Championship,Football/Soccer,Tier 2,Bottom-up,Spiideo Perform LITE TEAM,New,"15,000",2026-12-31,CEO,Spend at club level,Veo,Webinar,Promote-relegate exposure,,Leeds; Norwich,,,Club-by-club,,,
+Bob Bergstrom,Nordics,2026-01-20,H2 2026,1,Allsvenskan,Football/Soccer,Tier 2,Top-down,Spiideo Perform PRO,New,"25000",2026-10-15,Sporting Director,League partnership,VEO,Press release,Existing Spiideo clubs,,Hammarby; AIK,,Strong local presence,All 16 clubs,,,
+Bob Bergstrom,Nordics,2026-01-20,H2 2026,2,Premier League,Football/Soccer,Tier 1,Top-down,Spiideo Perform PRO PLUS,Upsell,"35,000",2027-03-31,Head of Football,Add Replay module,Hudl,Co-marketing,Cross-sell to existing,,Manchester City,,,Add-on to existing,,,
+Carla Chen,APAC,2026-02-01,H2 2026,1,J-League,Football/Soccer,Tier 2,Bottom-up,Spiideo Perform PRO,New,"30000",2026-11-30,Marketing Head,Club-by-club,Local provider,Translation,Asia expansion priority,,Urawa; Kashima,,,J1 only,001QD00000ABCDEF,,
