@@ -67,7 +67,10 @@ Push order **Account → Contact → Opportunity → OpportunityLineItem** (stag
 - **Accounts:** new clubs created, matched updated (changed fields only). Address via
   `*CountryCode`/`*StateCode` (picklists on; map country→ISO); Tax → `Younium__Y_Tax_reg_Nr__c` (EU)
   / `Younium__Y_Org_Nr__c` (non-EU); `Org_Type_for_Calc__c`=CB; `Level__c` from the league;
-  Invoice Delivery="Email". Contact-role lookups point at the created contact.
+  Invoice Delivery="Email". Contact-role lookups point at the created contact. **NEW accounts
+  always get `Website` + `Domain__c`** (derived from the club contact's email domain; generic
+  providers like gmail can't be derived → the account is flagged in warnings for a manual/agent
+  domain lookup). Matched/existing accounts keep their own Website/Domain.
 - **Contacts:** whole-CRM email dedup (same acct reuse / other acct prompt-to-reparent / else create).
 - **Opps:** child per club, `Master_Opportunity__c`=master, **Closed Won / Forecast Closed**,
   CloseDate+Owner inherited from master, **RecordType Transactional**, `Pricebook2Id`=Younium-Spiideo AB.

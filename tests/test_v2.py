@@ -488,3 +488,50 @@ def test_voucher_forces_subscription_list_price_on_both_lines(records, pricebook
     vouchers = [o for o in subs if o.fields.get(M.OLI_FIELDS["voucher"]) == "true"]
     assert len(vouchers) == 23
     assert all(o.fields[M.OLI_FIELDS["quantity"]] == -1 for o in vouchers)
+
+
+# --- 2026-06-24: NEW accounts always get Website + Domain (Shayan) -----------
+
+def test_web_domain_helper():
+    assert M.web_domain("wheatkings.com") == "wheatkings.com"
+    assert M.web_domain("utc.edu") == "utc.edu"
+    assert M.web_domain("CLUB.SE") == "club.se"        # normalised
+    assert M.web_domain("gmail.com") == ""             # generic provider -> not derivable
+    assert M.web_domain("") == ""
+
+
+def test_new_account_gets_website_and_domain_from_email(records, pricebook):
+    # match_ids={} + no Customer SF ID -> NEW account; email domain is a real org domain.
+    acct = _plan(records, pricebook, STRUCT_CAMERAS_AND_SUBS).by_object("Account")[0]
+    assert acct.operation == "create"
+    assert records[0].email_domain == "wheatkings.com"
+    assert acct.fields[M.ACCOUNT_FIELDS["website"]] == "wheatkings.com"
+    assert acct.fields[M.ACCOUNT_FIELDS["domain"]] == "wheatkings.com"
+
+
+def test_matched_account_does_not_get_derived_website(records, pricebook):
+    r = records[0]
+    p = build_plan([r], structure=STRUCT_CAMERAS_AND_SUBS, currency="USD",
+                   master=MasterOpp(opp_id="006X", owner_id="005X", close_date="2026-06-01"),
+                   pricing=_pricing(), pricebook=pricebook, team_gender="Mens",
+                   record_type_id="012RT", match_ids={r.team_name: "001MATCHED"})
+    acct = p.by_object("Account")[0]
+    assert acct.operation == "upsert"                  # matched, not new
+    assert M.ACCOUNT_FIELDS["website"] not in acct.fields
+    assert M.ACCOUNT_FIELDS["domain"] not in acct.fields
+
+
+def test_new_account_generic_email_is_flagged_not_guessed(pricebook):
+    from league_dataload.v2.load_mcs import ClubRecord, Camera
+    rec = ClubRecord(team_name="Gmail Club", sport="Basketball", gender="Mens",
+                     contact_name="Joe Coach", contact_email="joe@gmail.com",
+                     contact_phone="555", subscription="Spiideo Replay PRO",
+                     cameras=[Camera(index=1, scene="Gym", type="X-Line POINT MK II",
+                                     position="Center")])
+    p = build_plan([rec], structure=STRUCT_CAMERAS_AND_SUBS, currency="USD",
+                   master=MasterOpp(opp_id="006X", owner_id="005X", close_date="2026-06-01"),
+                   pricing=_pricing(), pricebook=pricebook, team_gender="Mens",
+                   record_type_id="012RT", match_ids={})
+    acct = p.by_object("Account")[0]
+    assert M.ACCOUNT_FIELDS["website"] not in acct.fields   # not derived from a free provider
+    assert any("no Website/Domain derivable" in w for w in p.warnings)
