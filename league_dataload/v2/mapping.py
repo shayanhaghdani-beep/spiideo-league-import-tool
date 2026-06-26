@@ -33,8 +33,10 @@ OPP_RECORD_TYPE_IDS = {"Transactional": "012QD000003gtftYAA", "Enterprise": "012
 ACCOUNT_FIELDS = {
     "name": "Name",
     "id": "Id",                                  # upsert key when matched
-    # NEW accounts always get a Website + Domain (Shayan, 2026-06-24). Both standard/
-    # custom URL fields; derived from the club contact's email domain (see web_domain()).
+    # NEW accounts always NEED a Website + Domain, but the tool does NOT guess them from
+    # the email domain (often wrong: gmail / municipality / personal). build_plan flags
+    # every new account instead; the domain is web-searched (agents) and set into these
+    # two URL fields (Shayan, 2026-06-24, "flag only, no guessing").
     "website": "Website",
     "domain": "Domain__c",
     # State/Country picklists are ENABLED in the org -> use the *Code fields.
@@ -115,27 +117,6 @@ def is_eu_country(country: str) -> bool:
 
 def tax_field_for(country: str) -> str:
     return ACCOUNT_FIELDS["tax_id_eu"] if is_eu_country(country) else ACCOUNT_FIELDS["tax_id_noneu"]
-
-
-# Generic email providers -> a contact's email domain is NOT the org's web domain, so
-# don't derive Website/Domain from it (flag the new account for a manual/agent lookup).
-FREE_EMAIL_DOMAINS = {
-    "gmail.com", "googlemail.com", "hotmail.com", "outlook.com", "live.com", "msn.com",
-    "yahoo.com", "yahoo.co.uk", "ymail.com", "icloud.com", "me.com", "mac.com",
-    "aol.com", "protonmail.com", "proton.me", "gmx.com", "gmx.de", "mail.com",
-    "zoho.com", "yandex.com", "qq.com", "163.com", "126.com", "web.de", "t-online.de",
-}
-
-
-def web_domain(email_domain: str) -> str:
-    """The org web domain to use for a NEW account's Website/Domain, derived from the
-    club contact's email domain. Returns '' for blank or a generic free provider (no
-    reliable org domain there -> the account is flagged for a manual/agent lookup).
-    Org domains (clubs, .edu, federations) almost always == the website domain."""
-    d = (email_domain or "").strip().lower().lstrip("@")
-    if not d or d in FREE_EMAIL_DOMAINS:
-        return ""
-    return d
 
 
 # Team_Gender_c__c picklist values (live SF): Mens / Womens / Mens and Womens.

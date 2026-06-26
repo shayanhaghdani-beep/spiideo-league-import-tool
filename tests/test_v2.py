@@ -494,14 +494,6 @@ def test_voucher_forces_subscription_list_price_on_both_lines(records, pricebook
 
 # --- 2026-06-24: NEW accounts always get Website + Domain (Shayan) -----------
 
-def test_web_domain_helper():
-    assert M.web_domain("wheatkings.com") == "wheatkings.com"
-    assert M.web_domain("utc.edu") == "utc.edu"
-    assert M.web_domain("CLUB.SE") == "club.se"        # normalised
-    assert M.web_domain("gmail.com") == ""             # generic provider -> not derivable
-    assert M.web_domain("") == ""
-
-
 def test_new_account_flagged_for_website_not_guessed(records, pricebook):
     # NEW account (match_ids={}, no Customer SF ID): "flag only, no guessing" -> Website/Domain
     # are NOT auto-set even when the email is a real org domain; the account is flagged instead.
