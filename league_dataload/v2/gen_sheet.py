@@ -71,6 +71,8 @@ def _columns() -> list[tuple[str, str | None, bool]]:
         ("Billing Postal Code/Zip Code", None, True), ("Billing Province/State", None, True),
         ("Billing City", None, True), ("Tax ID", None, True),
         ("Spiideo Subscription", "sub", True),
+        # "yes" -> the opp's Order Notes gets "add to SvFF LE" (Shayan, 2026-06-24).
+        ("SvFF League Exchange", "yesno", True),
     ]
     for n in range(1, MAX_CAMERAS + 1):
         cols += [
@@ -118,6 +120,7 @@ def generate(pricebook_csv: str | Path, out_path: str | Path, *,
         "position": _write_list(lists, "C", "Positions", POSITIONS),
         "sport": _write_list(lists, "D", "Sports", SPORTS),
         "gender": _write_list(lists, "E", "Genders", GENDERS),
+        "yesno": _write_list(lists, "F", "YesNo", ["yes", "no"]),
     }
     lists.sheet_state = "hidden"
 

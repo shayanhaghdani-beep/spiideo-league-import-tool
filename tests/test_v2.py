@@ -292,6 +292,46 @@ def test_attach_mode_sets_team_gender_from_row(records, pricebook):
     assert opp.fields[M.OPPORTUNITY_FIELDS["sport"]] == rec.sport        # Sport set too (create-path parity)
 
 
+def test_extract_sf_id_from_url_or_bare():
+    from league_dataload.v2.load_mcs import _extract_sf_id
+    url = ("https://spiideo.lightning.force.com/lightning/r/Opportunity/"
+           "006QD00000qblnIYAQ/view?0.source=alohaHeader")
+    assert _extract_sf_id(url) == "006QD00000qblnIYAQ"          # "SF OPP LINK" URL form
+    assert _extract_sf_id("006QD00000qblnIYAQ") == "006QD00000qblnIYAQ"   # bare Id
+    assert _extract_sf_id("") == ""
+
+
+def test_loader_parses_league_exchange_and_opp_link():
+    from league_dataload.v2.load_mcs import parse_rows
+    header = ["Team Name", "SvFF League Exchange", "SF OPP LINK"]
+    row = ["Test FC", "YES",
+           "https://x.lightning.force.com/lightning/r/Opportunity/006QD00000qblnIYAQ/view"]
+    r = parse_rows([header, row])[0]
+    assert r.wants_league_exchange is True
+    assert r.opportunity_sf_id == "006QD00000qblnIYAQ"          # extracted from the URL
+
+
+def test_svff_league_exchange_adds_order_note(records, pricebook):
+    """'SvFF League Exchange' = yes -> Order Notes = 'add to SvFF LE'; blank -> field unset
+    (Shayan, 2026-06-24). Works in attach mode (and create)."""
+    on = M.OPPORTUNITY_FIELDS["order_notes"]
+    rec = records[0]
+    rec.opportunity_sf_id = "006EXISTINGOPP"
+    rec.league_exchange = "YES"
+    p = build_plan([rec], structure=STRUCT_CAMERAS_AND_SUBS, currency="USD",
+                   master=MasterOpp(opp_id=""), pricing=_pricing(), pricebook=pricebook,
+                   team_gender="Mens", record_type_id="012RT", match_ids={})
+    assert p.by_object("Opportunity")[0].fields[on] == "add to SvFF LE"
+
+    rec2 = records[1]
+    rec2.opportunity_sf_id = "006OTHEROPP"
+    rec2.league_exchange = ""        # blank -> no note
+    p2 = build_plan([rec2], structure=STRUCT_CAMERAS_AND_SUBS, currency="USD",
+                    master=MasterOpp(opp_id=""), pricing=_pricing(), pricebook=pricebook,
+                    team_gender="Mens", record_type_id="012RT", match_ids={})
+    assert on not in p2.by_object("Opportunity")[0].fields
+
+
 def test_attach_mode_owner_and_stage_override(records, pricebook):
     """SvFF: a Config owner + stage/forecast override re-owns the existing opp and leaves it
     at the latest OPEN stage (rep closes it himself) instead of Closed Won (Shayan, 2026-06-23)."""

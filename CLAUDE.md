@@ -58,6 +58,9 @@ arrive named `<club> – SvFF Rollout 2026` / `… Expansion 2026` and SvFF want
 Config keys **Opportunity Owner / Opportunity Stage / Forecast Category** override the opp
 owner + stage (SvFF = Amir Jakirlic, stage "Decision & Signature"/Commit so the rep closes it
 himself — NOT Closed Won; the stage must be valid for the opp's RecordType sales process).
+The loader accepts the opp Id as a bare Id **or** a Lightning URL (the sheet's `SF OPP LINK`
+column) — it extracts the Id either way. A sheet **SvFF League Exchange** = yes writes
+`Order_Notes__c` = "add to SvFF LE" on the opp.
 
 ## What it writes (mapping SIGNED OFF by Shayan + Egil; details in RUNBOOK/MAPPING)
 Push order **Account → Contact → Opportunity → OpportunityLineItem** (staged create-and-capture).
@@ -86,7 +89,7 @@ Push order **Account → Contact → Opportunity → OpportunityLineItem** (stag
   `python3 -m league_dataload.v2 picklist-deps`). Source of truth for which Position values are
   valid per Sport. NOTE: the gen_sheet `POSITIONS` dropdown is still a flat hand-maintained list
   (no Sport→Position dependency yet) — this file is staged to drive dependent dropdowns later.
-- `tests/` — `pytest -q` → 41/41 (offline).
+- `tests/` — `pytest -q` → 44/44 (offline).
 - Older `league_dataload/` modules (matcher/normalize/emit/…) + `README.md` are the **legacy v1**
   CSV flow — superseded by v2; left for reference.
 

@@ -52,12 +52,17 @@ class ClubRecord:
     billing_city: str = ""
     tax_id: str = ""
     subscription: str = ""
+    league_exchange: str = ""          # "SvFF League Exchange" column (yes/no)
     cameras: list[Camera] = field(default_factory=list)
 
     @property
     def email_domain(self) -> str:
         e = self.contact_email.strip()
         return e.split("@")[-1].lower() if "@" in e else ""
+
+    @property
+    def wants_league_exchange(self) -> bool:
+        return self.league_exchange.strip().lower() in ("yes", "true", "1", "y")
 
     @property
     def active_cameras(self) -> list[Camera]:
@@ -118,6 +123,19 @@ def _parse_camera(row: list[str], idx: dict[str, int], n: int) -> Camera:
     )
 
 
+def _extract_sf_id(value: str) -> str:
+    """A pinned SF Id, whether the sheet holds the bare 15/18-char Id or a Lightning URL.
+    The sales sheet's 'SF OPP LINK' column is a full .../Opportunity/<id>/view URL, not an Id
+    (Shayan, 2026-06-24) -- pull the Id out so attach mode still fires."""
+    v = (value or "").strip()
+    if not v:
+        return ""
+    if re.fullmatch(r"[a-zA-Z0-9]{15,18}", v):
+        return v
+    m = re.search(r"/([a-zA-Z0-9]{15,18})(?:/|\?|$)", v)
+    return m.group(1) if m else v
+
+
 def parse_rows(rows: list[list[str]]) -> list[ClubRecord]:
     """Parse raw sheet rows (incl. preamble) into ClubRecords."""
     h = _find_header_row(rows)
@@ -134,8 +152,10 @@ def parse_rows(rows: list[list[str]]) -> list[ClubRecord]:
             gender=_get(row, idx, "Team Gender"),
             sport=_get(row, idx, "Sport"),
             arena=_get(row, idx, "Arena Name"),
-            customer_sf_id=_get(row, idx, "Customer SF ID"),
-            opportunity_sf_id=_get(row, idx, "Opportunity SF ID"),
+            customer_sf_id=_extract_sf_id(_get(row, idx, "Customer SF ID")),
+            # The opp Id may be a bare Id ("Opportunity SF ID") or a Lightning URL ("SF OPP LINK").
+            opportunity_sf_id=_extract_sf_id(_get(row, idx, "Opportunity SF ID")
+                                             or _get(row, idx, "SF OPP LINK")),
             effective_start=_get(row, idx, "Effective Start Date"),
             contact_name=_get(row, idx, "Contact Name"),
             contact_email=_get(row, idx, "Contact Email"),
@@ -147,6 +167,7 @@ def parse_rows(rows: list[list[str]]) -> list[ClubRecord]:
             billing_city=_get(row, idx, "Billing City"),
             tax_id=_get(row, idx, "Tax ID"),
             subscription=_get(row, idx, "Spiideo Subscription"),
+            league_exchange=_get(row, idx, "SvFF League Exchange"),
             cameras=[_parse_camera(row, idx, n) for n in range(1, n_cams + 1)],
         )
         records.append(rec)

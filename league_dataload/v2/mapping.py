@@ -241,6 +241,7 @@ OPPORTUNITY_FIELDS = {
     "invoice_account": "Younium__invoice_account__c",
     "system_admin": "System_Administrator__c",    # Contact lookup on the OPP = the line's contact (Shayan, 2026-06-22)
     "event_source": "Event_Source__c",            # default "Not applicable" (Shayan, 2026-06-22)
+    "order_notes": "Order_Notes__c",              # "SvFF League Exchange"=yes -> "add to SvFF LE"
     # Billing period auto-defaults to "Annual" in SF; Notice period optional/blank.
     # Camera Shipping Schedule / Shipment Status = sheet-internal or SF-auto (not written).
 }
@@ -252,6 +253,7 @@ OPPORTUNITY_DEFAULTS = {
     "order_type": "New order",                    # confirmed
     "record_type_developer_name": "Transactional",  # confirmed (per-club child opps)
     "event_source": "Not applicable",             # default unless told otherwise (Shayan, 2026-06-22)
+    "svff_le_note": "add to SvFF LE",             # Order Notes when "SvFF League Exchange"=yes (Shayan, 2026-06-24)
     # close_date inherited from the master opp. owner_id = the CSM from the
     # "Opportunity Owner" prompt (Shayan, 2026-06-19); blank prompt -> master owner.
     # Contacts are owned by the master opp owner, never the running user.

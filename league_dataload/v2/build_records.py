@@ -161,6 +161,8 @@ def _opp_fields(rec: ClubRecord, currency: str, master: "MasterOpp",
         F["close_date"]: master.close_date,
         F["owner_id"]: opp_owner_id or master.owner_id,
     }
+    if rec.wants_league_exchange:
+        d[F["order_notes"]] = M.OPPORTUNITY_DEFAULTS["svff_le_note"]   # "add to SvFF LE"
     return {k: v for k, v in d.items() if k and v not in ("", None)}
 
 
@@ -198,6 +200,8 @@ def _existing_opp_update_fields(rec: ClubRecord, currency: str, *, opp_owner_id:
         d[F["master_opportunity"]] = master_opp_id   # link the placeholder to its master opp
     if team_gender:
         d[F["team_gender"]] = team_gender   # from the sheet's per-row Team Gender (Mens/Womens)
+    if rec.wants_league_exchange:
+        d[F["order_notes"]] = M.OPPORTUNITY_DEFAULTS["svff_le_note"]   # "add to SvFF LE"
     return {k: v for k, v in d.items() if k and v not in ("", None)}
 
 
