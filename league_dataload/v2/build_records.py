@@ -88,8 +88,7 @@ def _split_name(full: str) -> tuple[str, str]:
     return parts[0], " ".join(parts[1:])
 
 
-def _account_fields(rec: ClubRecord, currency: str, league_level: str = "",
-                    is_new: bool = False) -> dict:
+def _account_fields(rec: ClubRecord, currency: str, league_level: str = "") -> dict:
     F = M.ACCOUNT_FIELDS
     d = {
         F["name"]: rec.team_name,
@@ -120,14 +119,9 @@ def _account_fields(rec: ClubRecord, currency: str, league_level: str = "",
         d[F["shipping_street"]] = rec.billing_street
         d[F["shipping_postal"]] = rec.billing_postal
         d[F["shipping_city"]] = rec.billing_city
-    # A NEW account must always carry a Website + Domain (Shayan, 2026-06-24). Derive
-    # both from the club contact's email domain; skipped (left blank -> flagged in
-    # build_plan) when the email is a generic provider. Matched accounts keep their own.
-    if is_new:
-        wd = M.web_domain(rec.email_domain)
-        if wd:
-            d[F["website"]] = wd
-            d[F["domain"]] = wd
+    # Website/Domain__c are NOT auto-derived from the email domain -- it's often wrong (a free
+    # provider, a municipality address, a personal domain). NEW accounts are flagged in
+    # build_plan for a web-search lookup instead (Shayan, 2026-06-24: "flag only, no guessing").
     return {k: v for k, v in d.items() if v not in ("", None)}
 
 
@@ -321,20 +315,17 @@ def build_plan(records: list[ClubRecord], *, structure: int, currency: str,
             # (it would overwrite the club's own Level__c with the league/federation's). Only a
             # create-mode (new) club takes the league Level (Shayan, 2026-06-24).
             fields=_account_fields(rec, currency,
-                                   league_level=("" if attach_opp_id else master.account_level),
-                                   is_new=not matched_id),
+                                   league_level=("" if attach_opp_id else master.account_level)),
             sf_id=matched_id, deferred_parents=deferred,
             label=f"Account {rec.team_name}" + (" (existing)" if matched_id else " (NEW)")))
-        # A NEW account must carry a Website + Domain. We derive both from the contact's
-        # email domain; if it's blank or a generic provider we can't -> flag it ONCE so the
-        # operator (or an agent) looks the club's domain up and sets it (Shayan, 2026-06-24).
+        # Every NEW account must carry a Website + Domain__c, but we do NOT guess them from the
+        # email (often wrong) -- flag the account ONCE so it gets a web-search lookup, then set
+        # Website + Domain__c (Shayan, 2026-06-24: "flag only, no guessing").
         if not matched_id and rec.team_name not in _new_acct_seen:
             _new_acct_seen.add(rec.team_name)
-            if not M.web_domain(rec.email_domain):
-                plan.warnings.append(
-                    f"{rec.team_name}: NEW account, no Website/Domain derivable from contact "
-                    f"email ({rec.email_domain or 'none'}) -> look up the club domain and set "
-                    "Website + Domain__c manually")
+            plan.warnings.append(
+                f"{rec.team_name}: NEW account -> set Website + Domain__c (web-search the club's "
+                f"official site; not auto-guessed). Contact email: {rec.contact_email or 'none'}")
 
         # ---- contact ----
         if has_contact:

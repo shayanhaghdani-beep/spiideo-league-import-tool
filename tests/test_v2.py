@@ -79,7 +79,9 @@ def test_structure_1_counts(records, pricebook):
     assert len(p.by_object("Opportunity")) == 23
     # 23 subs + 23*7 cameras
     assert len(p.by_object("OpportunityLineItem")) == 23 + 23 * 7
-    assert not p.warnings
+    # every club here is a NEW account -> each is flagged for a Website/Domain lookup; there
+    # should be no OTHER warnings (e.g. missing products).
+    assert len(p.warnings) == 23 and all("set Website + Domain__c" in w for w in p.warnings)
 
 
 def test_structure_2_has_no_subscription_oli(records, pricebook):
@@ -500,13 +502,15 @@ def test_web_domain_helper():
     assert M.web_domain("") == ""
 
 
-def test_new_account_gets_website_and_domain_from_email(records, pricebook):
-    # match_ids={} + no Customer SF ID -> NEW account; email domain is a real org domain.
-    acct = _plan(records, pricebook, STRUCT_CAMERAS_AND_SUBS).by_object("Account")[0]
+def test_new_account_flagged_for_website_not_guessed(records, pricebook):
+    # NEW account (match_ids={}, no Customer SF ID): "flag only, no guessing" -> Website/Domain
+    # are NOT auto-set even when the email is a real org domain; the account is flagged instead.
+    p = _plan(records, pricebook, STRUCT_CAMERAS_AND_SUBS)
+    acct = p.by_object("Account")[0]
     assert acct.operation == "create"
-    assert records[0].email_domain == "wheatkings.com"
-    assert acct.fields[M.ACCOUNT_FIELDS["website"]] == "wheatkings.com"
-    assert acct.fields[M.ACCOUNT_FIELDS["domain"]] == "wheatkings.com"
+    assert M.ACCOUNT_FIELDS["website"] not in acct.fields
+    assert M.ACCOUNT_FIELDS["domain"] not in acct.fields
+    assert any("set Website + Domain__c" in w for w in p.warnings)
 
 
 def test_matched_account_does_not_get_derived_website(records, pricebook):
@@ -533,5 +537,5 @@ def test_new_account_generic_email_is_flagged_not_guessed(pricebook):
                    pricing=_pricing(), pricebook=pricebook, team_gender="Mens",
                    record_type_id="012RT", match_ids={})
     acct = p.by_object("Account")[0]
-    assert M.ACCOUNT_FIELDS["website"] not in acct.fields   # not derived from a free provider
-    assert any("no Website/Domain derivable" in w for w in p.warnings)
+    assert M.ACCOUNT_FIELDS["website"] not in acct.fields   # never guessed
+    assert any("set Website + Domain__c" in w for w in p.warnings)
