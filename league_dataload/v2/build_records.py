@@ -165,13 +165,15 @@ def _opp_fields(rec: ClubRecord, currency: str, master: "MasterOpp",
 
 
 def _existing_opp_update_fields(rec: ClubRecord, currency: str, *, opp_owner_id: str = "",
-                                stage: str = "", forecast: str = "") -> dict:
+                                stage: str = "", forecast: str = "", master_opp_id: str = "",
+                                team_gender: str = "") -> dict:
     """Minimal field set written to a PRE-EXISTING opp in attach mode (Shayan, 2026-06-23).
     Sets the stage (default Closed Won, override via Config -- SvFF uses 'Decision & Signature'
     so the rep closes it himself), the Younium-relevant fields + the pricebook (required before
-    OLIs can attach), and the owner IF a Config 'Opportunity Owner' was given (SvFF = Amir
-    Jakirlic). Deliberately leaves Name, CloseDate, RecordType and Master_Opportunity__c
-    untouched -- the placeholder already carries the right values."""
+    OLIs can attach), the owner IF a Config 'Opportunity Owner' was given (SvFF = Amir Jakirlic),
+    and links to the master opp IF a Config 'Master Opportunity ID' was given (SvFF placeholders
+    arrive with a null master -- e.g. 0067Q00000GIylWQAT 'Swedish Football Federation'). Leaves
+    Name, CloseDate and RecordType untouched -- the placeholder already carries those."""
     F = M.OPPORTUNITY_FIELDS
     D = M.OPPORTUNITY_DEFAULTS
     d = {
@@ -188,9 +190,14 @@ def _existing_opp_update_fields(rec: ClubRecord, currency: str, *, opp_owner_id:
         F["event_source"]: D["event_source"],           # Not applicable
         F["spiideo_account_name"]: f"{rec.team_name} Perform",
         F["effective_start_date"]: _to_iso_date(rec.effective_start),
+        F["sport"]: rec.sport,                           # = account Sport__c (parity w/ create path)
     }
     if opp_owner_id:
         d[F["owner_id"]] = opp_owner_id     # SvFF: re-own the deal to the CSM (e.g. Amir)
+    if master_opp_id:
+        d[F["master_opportunity"]] = master_opp_id   # link the placeholder to its master opp
+    if team_gender:
+        d[F["team_gender"]] = team_gender   # from the sheet's per-row Team Gender (Mens/Womens)
     return {k: v for k, v in d.items() if k and v not in ("", None)}
 
 
@@ -258,6 +265,7 @@ def build_plan(records: list[ClubRecord], *, structure: int, currency: str,
         # its OLIs are PER ROW, so their ref-keys must be unique per row -- otherwise every
         # team's OLIs collide onto the last opp created for that club (Shayan, 2026-06-23).
         rowkey = f"{rec.team_name}#{ridx}"
+        attach_opp_id = (rec.opportunity_sf_id or "").strip()
         # ---- camera OLIs (every structure) ----
         camera_olis: list[dict] = []
         for cam in rec.active_cameras:
@@ -295,7 +303,11 @@ def build_plan(records: list[ClubRecord], *, structure: int, currency: str,
             sobject=M.SOBJECT["account"],
             operation="upsert" if matched_id else "create",
             ref_key=acc_ref,
-            fields=_account_fields(rec, currency, league_level=master.account_level),
+            # In attach mode DON'T propagate the master's Level onto an existing club account
+            # (it would overwrite the club's own Level__c with the league/federation's). Only a
+            # create-mode (new) club takes the league Level (Shayan, 2026-06-24).
+            fields=_account_fields(rec, currency,
+                                   league_level=("" if attach_opp_id else master.account_level)),
             sf_id=matched_id, deferred_parents=deferred,
             label=f"Account {rec.team_name}" + (" (existing)" if matched_id else " (NEW)")))
 
@@ -315,7 +327,10 @@ def build_plan(records: list[ClubRecord], *, structure: int, currency: str,
 
         # ---- opportunity ----
         opp_ref = f"OPP:{rowkey}"
-        attach_opp_id = (rec.opportunity_sf_id or "").strip()
+        # Gender is per row when the sheet specifies it (college conferences carry one gender
+        # per team/sport), falling back to the Config value. Set on BOTH paths (Shayan, 2026-06-24
+        # -- attach mode was previously dropping it).
+        row_gender = M.team_gender_value(rec.gender) or team_gender
         # Contact lookups apply to either path (the Contact is created before the Opp).
         opp_parents: dict = {}
         if has_contact:
@@ -331,13 +346,12 @@ def build_plan(records: list[ClubRecord], *, structure: int, currency: str,
                 sobject=M.SOBJECT["opportunity"], operation="upsert",
                 ref_key=opp_ref, sf_id=attach_opp_id,
                 fields=_existing_opp_update_fields(rec, currency, opp_owner_id=opp_owner_id,
-                                                   stage=opp_stage, forecast=opp_forecast),
+                                                   stage=opp_stage, forecast=opp_forecast,
+                                                   master_opp_id=master.opp_id,
+                                                   team_gender=row_gender),
                 parents=opp_parents,
                 label=f"Opportunity (existing) {rec.team_name} [{attach_opp_id}]"))
         else:
-            # Gender is per row when the sheet specifies it (college conferences carry
-            # one gender per team/sport), falling back to the Config value otherwise.
-            row_gender = M.team_gender_value(rec.gender) or team_gender
             opp_fields = _opp_fields(rec, currency, master, row_gender, league, opp_owner_id,
                                      stage=opp_stage, forecast=opp_forecast)
             if record_type_id:

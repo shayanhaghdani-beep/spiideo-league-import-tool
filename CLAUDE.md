@@ -48,9 +48,13 @@ run with the sandbox disabled.
 
 **Attach mode** (struct 1/2; added 2026-06-23 for SvFF): if a sheet row carries an
 **Opportunity SF ID**, the tool UPDATES that existing opp (→ Closed Won + Pricebook2Id +
-Younium fields + currency forced to the run currency) and attaches OLIs, instead of creating
-a new opp. A **Customer SF ID** pins the account (beats the fuzzy matcher). No master opp
-needed. For the ~80 SvFF `<club> – Rollout 2026` placeholder opps. See memory `svff-rollout-*`.
+Younium fields + currency forced to the run currency + Team Gender from the row) and attaches
+OLIs, instead of creating a new opp. A **Customer SF ID** pins the account (beats the fuzzy matcher). A master opp is
+optional, but a Config **Master Opportunity ID** (SvFF = `0067Q00000GIylWQAT` "Swedish Football
+Federation") links each placeholder via `Master_Opportunity__c` — and in attach mode it is NOT
+propagated onto the club account's `Level__c`. For the ~80 SvFF placeholder opps; note they
+arrive named `<club> – SvFF Rollout 2026` / `… Expansion 2026` and SvFF wants them as
+`<club> – SvFF Camera Order 2026` (renamed manually/live, not yet auto). See memory `svff-rollout-*`.
 Config keys **Opportunity Owner / Opportunity Stage / Forecast Category** override the opp
 owner + stage (SvFF = Amir Jakirlic, stage "Decision & Signature"/Commit so the rep closes it
 himself — NOT Closed Won; the stage must be valid for the opp's RecordType sales process).
@@ -82,7 +86,7 @@ Push order **Account → Contact → Opportunity → OpportunityLineItem** (stag
   `python3 -m league_dataload.v2 picklist-deps`). Source of truth for which Position values are
   valid per Sport. NOTE: the gen_sheet `POSITIONS` dropdown is still a flat hand-maintained list
   (no Sport→Position dependency yet) — this file is staged to drive dependent dropdowns later.
-- `tests/` — `pytest -q` → 39/39 (offline).
+- `tests/` — `pytest -q` → 41/41 (offline).
 - Older `league_dataload/` modules (matcher/normalize/emit/…) + `README.md` are the **legacy v1**
   CSV flow — superseded by v2; left for reference.
 

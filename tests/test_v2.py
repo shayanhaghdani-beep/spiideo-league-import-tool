@@ -262,6 +262,36 @@ def test_attach_mode_updates_existing_opp_instead_of_creating(records, pricebook
     assert cams and all(o.fields[M.OLI_FIELDS["unit_price"]] == 0.0 for o in cams)             # cameras free
 
 
+def test_attach_mode_links_master_without_forcing_account_level(records, pricebook):
+    """A Config master opp links the placeholder opp via Master_Opportunity__c; in attach mode
+    the master's Level is NOT propagated onto the existing club account (Shayan, 2026-06-24)."""
+    rec = records[0]
+    rec.customer_sf_id = "001EXISTINGACC"
+    rec.opportunity_sf_id = "006EXISTINGOPP"
+    p = build_plan([rec], structure=STRUCT_CAMERAS_AND_SUBS, currency="USD",
+                   master=MasterOpp(opp_id="006MASTER", owner_id="005X", account_level="Level 1"),
+                   pricing=_pricing(), pricebook=pricebook, team_gender="Mens",
+                   record_type_id="012RT", match_ids={})
+    opp = p.by_object("Opportunity")[0]
+    assert opp.fields[M.OPPORTUNITY_FIELDS["master_opportunity"]] == "006MASTER"
+    acc = p.by_object("Account")[0]
+    assert M.ACCOUNT_FIELDS["level"] not in acc.fields   # league Level not forced onto a pinned acct
+
+
+def test_attach_mode_sets_team_gender_from_row(records, pricebook):
+    """Attach mode writes Team Gender from the sheet's per-row value, normalised to the SF
+    picklist (Shayan, 2026-06-24 — it was previously dropped on attach)."""
+    rec = records[0]
+    rec.opportunity_sf_id = "006EXISTINGOPP"
+    rec.gender = "Women's"
+    p = build_plan([rec], structure=STRUCT_CAMERAS_AND_SUBS, currency="USD",
+                   master=MasterOpp(opp_id=""), pricing=_pricing(), pricebook=pricebook,
+                   team_gender="Mens", record_type_id="012RT", match_ids={})
+    opp = p.by_object("Opportunity")[0]
+    assert opp.fields[M.OPPORTUNITY_FIELDS["team_gender"]] == "Womens"   # per-row beats Config
+    assert opp.fields[M.OPPORTUNITY_FIELDS["sport"]] == rec.sport        # Sport set too (create-path parity)
+
+
 def test_attach_mode_owner_and_stage_override(records, pricebook):
     """SvFF: a Config owner + stage/forecast override re-owns the existing opp and leaves it
     at the latest OPEN stage (rep closes it himself) instead of Closed Won (Shayan, 2026-06-23)."""
