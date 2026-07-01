@@ -531,3 +531,14 @@ def test_new_account_generic_email_is_flagged_not_guessed(pricebook):
     acct = p.by_object("Account")[0]
     assert M.ACCOUNT_FIELDS["website"] not in acct.fields   # never guessed
     assert any("set Website + Domain__c" in w for w in p.warnings)
+
+
+# --- 2026-06-24: read-only Google Sheets source -----------------------------
+
+def test_gsheet_id_extraction_and_readonly_scopes():
+    from league_dataload.v2.gsheet_source import sheet_id, READONLY_SCOPES
+    url = "https://docs.google.com/spreadsheets/d/1MEpZtx_6RN6sPpvoS9FspkdIfQapi3Kk9W9eXM-CmJ4/edit?usp=sharing"
+    assert sheet_id(url) == "1MEpZtx_6RN6sPpvoS9FspkdIfQapi3Kk9W9eXM-CmJ4"
+    assert sheet_id("1MEpZtx_6RN6sPpvoS9FspkdIfQapi3Kk9W9eXM-CmJ4") == "1MEpZtx_6RN6sPpvoS9FspkdIfQapi3Kk9W9eXM-CmJ4"
+    # HARD read-only guarantee: NO writable scope may ever be in READONLY_SCOPES.
+    assert READONLY_SCOPES and all(s.endswith(".readonly") for s in READONLY_SCOPES)

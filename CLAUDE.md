@@ -84,6 +84,12 @@ Push order **Account → Contact → Opportunity → OpportunityLineItem** (stag
 ## Architecture
 - `league_dataload/v2/` — the v2 tool: `gen_sheet`, `load_mcs`, `build_records`, `pricing`,
   `mapping`, `importer`, `picklist_deps`, `__main__` (CLI).
+- `league_dataload/v2/gsheet_source.py` — read a filled Main Camera Sheet straight from a
+  **Google Sheet (`import --gsheet <url|id>`)**. ⛔ **READ-ONLY, always**: authenticates with
+  only `spreadsheets.readonly` + `drive.readonly` scopes (token can't write) and calls only read
+  methods — the tool must NEVER edit a sheet (Shayan, 2026-06-24). Needs a service-account key
+  (`--gsheet-creds` / `$GOOGLE_SHEETS_CREDENTIALS`) with Viewer access; Config comes from a local
+  `--config <xlsx>` (a Google Sheet usually has no Config tab).
 - `league_dataload/clubmatch/` — vendored clubsports club matcher (exact name beats
   exact-domain-to-a-different-name; proven on WHL 20/23 auto-matched, 3 new).
 - `data/pricebook.csv` — **live multi-currency** (EUR/USD/GBP/SEK, Younium-Spiideo AB; refresh

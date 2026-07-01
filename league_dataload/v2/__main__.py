@@ -14,6 +14,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 
@@ -193,8 +194,24 @@ def cmd_gen(args) -> None:
 
 
 def cmd_import(args) -> None:
-    records = load_mcs(args.sheet)
-    cfg = load_config(args.sheet)
+    # Data source: a local CSV/xlsx (--sheet) OR a Google Sheet (--gsheet, READ-ONLY). Config
+    # comes from the local xlsx's Config tab; with --gsheet pass --config <local.xlsx> for it
+    # (a Google Sheet usually has no Config tab). The Google read NEVER writes -- see gsheet_source.
+    if getattr(args, "gsheet", None):
+        creds = args.gsheet_creds or os.environ.get("GOOGLE_SHEETS_CREDENTIALS", "")
+        if not creds:
+            raise SystemExit("--gsheet needs a service-account key: --gsheet-creds or "
+                             "$GOOGLE_SHEETS_CREDENTIALS (READ-ONLY access).")
+        from .gsheet_source import load_mcs_gsheet
+        records = load_mcs_gsheet(args.gsheet, creds, args.gsheet_tab or None)
+        cfg = load_config(args.config) if args.config else {}
+        print(f"Source: Google Sheet (READ-ONLY) {args.gsheet}"
+              f"{f' [tab: {args.gsheet_tab}]' if args.gsheet_tab else ''}")
+    else:
+        if not args.sheet:
+            raise SystemExit("Provide --sheet <file> or --gsheet <url|id>.")
+        records = load_mcs(args.sheet)
+        cfg = load_config(args.config) if args.config else load_config(args.sheet)
     if not records:
         raise SystemExit("No club rows found in the sheet.")
 
@@ -346,7 +363,14 @@ def main(argv=None) -> None:
     g.set_defaults(func=cmd_gen)
 
     i = sub.add_parser("import", help="Phase B: read a filled sheet and import")
-    i.add_argument("--sheet", required=True)
+    i.add_argument("--sheet", help="local filled sheet (.csv/.xlsx) — data + Config tab")
+    # Google Sheets source (READ-ONLY; never writes to the sheet). Config still comes from a
+    # local xlsx via --config (a Google Sheet usually has no Config tab).
+    i.add_argument("--gsheet", help="Google Sheet URL or id to read (READ-ONLY) instead of --sheet")
+    i.add_argument("--gsheet-tab", default="", help="worksheet/tab name (default: auto-detect the 'Team Name' tab)")
+    i.add_argument("--gsheet-creds", default="",
+                   help="service-account JSON key path (default: $GOOGLE_SHEETS_CREDENTIALS); read-only access")
+    i.add_argument("--config", default="", help="local .xlsx whose Config tab to use (for --gsheet)")
     i.add_argument("--pricebook", default=DEFAULT_PRICEBOOK)
     i.add_argument("--org", default=DEFAULT_ORG)
     i.add_argument("--hubspot-csv", default="data/hubspot_companies.csv",
