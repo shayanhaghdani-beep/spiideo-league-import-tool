@@ -542,3 +542,18 @@ def test_gsheet_id_extraction_and_readonly_scopes():
     assert sheet_id("1MEpZtx_6RN6sPpvoS9FspkdIfQapi3Kk9W9eXM-CmJ4") == "1MEpZtx_6RN6sPpvoS9FspkdIfQapi3Kk9W9eXM-CmJ4"
     # HARD read-only guarantee: NO writable scope may ever be in READONLY_SCOPES.
     assert READONLY_SCOPES and all(s.endswith(".readonly") for s in READONLY_SCOPES)
+
+
+def test_opp_link_write_plan_targets_only_the_opp_link_column():
+    """The ONE permitted sheet write can only ever hit the SF OPP LINK column (Shayan, 2026-06-24)."""
+    from league_dataload.v2.gsheet_source import _plan_link_cells, OPP_LINK_COLUMN
+    rows = [
+        ["Team Name", "Foo", OPP_LINK_COLUMN, "Bar"],
+        ["Alpha FC", "x", "", "y"],                  # blank opp link -> written
+        ["Beta FC", "x", "https://existing", "y"],   # already has a link -> skipped
+        ["Gamma FC", "x", "", "y"],                  # not in the map -> skipped
+    ]
+    links = {"Alpha FC": "https://sf/opp/A", "Beta FC": "https://sf/opp/B"}
+    plan = _plan_link_cells(rows, links, only_if_blank=True)
+    assert plan == [(2, 3, "", "https://sf/opp/A")]           # only Alpha; col 3 = SF OPP LINK
+    assert all(col == 3 for _, col, _, _ in plan)             # never any other column

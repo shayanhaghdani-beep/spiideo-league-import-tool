@@ -85,11 +85,13 @@ Push order **Account → Contact → Opportunity → OpportunityLineItem** (stag
 - `league_dataload/v2/` — the v2 tool: `gen_sheet`, `load_mcs`, `build_records`, `pricing`,
   `mapping`, `importer`, `picklist_deps`, `__main__` (CLI).
 - `league_dataload/v2/gsheet_source.py` — read a filled Main Camera Sheet straight from a
-  **Google Sheet (`import --gsheet <url|id>`)**. ⛔ **READ-ONLY, always**: authenticates with
-  only `spreadsheets.readonly` + `drive.readonly` scopes (token can't write) and calls only read
-  methods — the tool must NEVER edit a sheet (Shayan, 2026-06-24). Needs a service-account key
-  (`--gsheet-creds` / `$GOOGLE_SHEETS_CREDENTIALS`) with Viewer access; Config comes from a local
-  `--config <xlsx>` (a Google Sheet usually has no Config tab).
+  **Google Sheet (`import --gsheet <url|id>`)**. ⛔ **Sheet writes are forbidden with EXACTLY ONE
+  exception** (Shayan, 2026-06-24): the tool may paste an opp's Salesforce link into the
+  **`SF OPP LINK`** column — nothing else, ever. Reads use read-only scopes only; the lone write
+  (`write_opp_links`) targets ONLY that column (pure `_plan_link_cells` can't return any other
+  column; each cell written via a single `update_cell`). Needs a service-account key
+  (`--gsheet-creds` / `$GOOGLE_SHEETS_CREDENTIALS`; Viewer to read, Editor to write the link);
+  Config comes from a local `--config <xlsx>`.
 - `league_dataload/clubmatch/` — vendored clubsports club matcher (exact name beats
   exact-domain-to-a-different-name; proven on WHL 20/23 auto-matched, 3 new).
 - `data/pricebook.csv` — **live multi-currency** (EUR/USD/GBP/SEK, Younium-Spiideo AB; refresh
