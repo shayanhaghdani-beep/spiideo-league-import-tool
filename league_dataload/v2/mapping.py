@@ -116,6 +116,13 @@ def is_eu_country(country: str) -> bool:
 
 
 def tax_field_for(country: str) -> str:
+    """Which SF Account field the sheet's 'Tax ID' value lands in.
+    - Sweden: the value is the org-nr (organisationsnummer, NNNNNN-NNNN) -> `Younium__Y_Org_Nr__c`
+      (Shayan, 2026-06-24), NOT the EU VAT field.
+    - other EU: a VAT / tax-reg number -> `Younium__Y_Tax_reg_Nr__c`.
+    - non-EU: org number -> `Younium__Y_Org_Nr__c`."""
+    if (country or "").strip().lower() == "sweden":
+        return ACCOUNT_FIELDS["tax_id_noneu"]      # Younium__Y_Org_Nr__c (Swedish org-nr)
     return ACCOUNT_FIELDS["tax_id_eu"] if is_eu_country(country) else ACCOUNT_FIELDS["tax_id_noneu"]
 
 

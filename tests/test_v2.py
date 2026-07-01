@@ -53,9 +53,10 @@ def test_pricing_gate(pricebook):
     assert PricingChoice(mode=PRICING_LIST).unit_price(pe) == pe.list_price
 
 
-def test_tax_field_eu_vs_noneu():
-    assert M.tax_field_for("Canada") == M.ACCOUNT_FIELDS["tax_id_noneu"]
-    assert M.tax_field_for("Sweden") == M.ACCOUNT_FIELDS["tax_id_eu"]
+def test_tax_field_routing():
+    assert M.tax_field_for("Canada") == M.ACCOUNT_FIELDS["tax_id_noneu"]   # non-EU -> Org_Nr
+    assert M.tax_field_for("Sweden") == M.ACCOUNT_FIELDS["tax_id_noneu"]   # SE org-nr -> Org_Nr (Shayan 2026-06-24)
+    assert M.tax_field_for("Germany") == M.ACCOUNT_FIELDS["tax_id_eu"]     # other EU -> VAT / Tax_reg_Nr
 
 
 def test_country_code():

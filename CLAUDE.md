@@ -65,8 +65,9 @@ column) — it extracts the Id either way. A sheet **SvFF League Exchange** = ye
 ## What it writes (mapping SIGNED OFF by Shayan + Egil; details in RUNBOOK/MAPPING)
 Push order **Account → Contact → Opportunity → OpportunityLineItem** (staged create-and-capture).
 - **Accounts:** new clubs created, matched updated (changed fields only). Address via
-  `*CountryCode`/`*StateCode` (picklists on; map country→ISO); Tax → `Younium__Y_Tax_reg_Nr__c` (EU)
-  / `Younium__Y_Org_Nr__c` (non-EU); `Org_Type_for_Calc__c`=CB; `Level__c` from the league;
+  `*CountryCode`/`*StateCode` (picklists on; map country→ISO); Tax ID → `Younium__Y_Org_Nr__c` for
+  **Sweden** (the org-nr, NNNNNN-NNNN) + non-EU, `Younium__Y_Tax_reg_Nr__c` for other EU (VAT);
+  `Org_Type_for_Calc__c`=CB; `Level__c` from the league;
   Invoice Delivery="Email". Contact-role lookups point at the created contact. **NEW accounts
   always need `Website` + `Domain__c`** — but the importer does NOT guess them from the email
   domain (often wrong: gmail, a municipality, a personal domain). It FLAGS every new account in
