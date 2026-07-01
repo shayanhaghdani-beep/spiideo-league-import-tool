@@ -544,16 +544,37 @@ def test_gsheet_id_extraction_and_readonly_scopes():
     assert READONLY_SCOPES and all(s.endswith(".readonly") for s in READONLY_SCOPES)
 
 
-def test_opp_link_write_plan_targets_only_the_opp_link_column():
-    """The ONE permitted sheet write can only ever hit the SF OPP LINK column (Shayan, 2026-06-24)."""
-    from league_dataload.v2.gsheet_source import _plan_link_cells, OPP_LINK_COLUMN
+def test_sheet_write_plan_targets_only_the_named_column_and_allowlist():
+    """A sheet write can only hit an ALLOWLISTED column, and only that column's cells (Shayan)."""
+    import pytest as _pytest
+    from league_dataload.v2.gsheet_source import _plan_cells, OPP_LINK_COLUMN, TAX_ID_COLUMN
     rows = [
-        ["Team Name", "Foo", OPP_LINK_COLUMN, "Bar"],
-        ["Alpha FC", "x", "", "y"],                  # blank opp link -> written
-        ["Beta FC", "x", "https://existing", "y"],   # already has a link -> skipped
-        ["Gamma FC", "x", "", "y"],                  # not in the map -> skipped
+        ["Team Name", "Foo", OPP_LINK_COLUMN, TAX_ID_COLUMN],
+        ["Alpha FC", "x", "", ""],                   # both blank
+        ["Beta FC", "x", "https://existing", "5560-1"],  # both already filled
+        ["Gamma FC", "x", "", ""],                   # not in the map
     ]
     links = {"Alpha FC": "https://sf/opp/A", "Beta FC": "https://sf/opp/B"}
-    plan = _plan_link_cells(rows, links, only_if_blank=True)
-    assert plan == [(2, 3, "", "https://sf/opp/A")]           # only Alpha; col 3 = SF OPP LINK
-    assert all(col == 3 for _, col, _, _ in plan)             # never any other column
+    plan = _plan_cells(rows, OPP_LINK_COLUMN, links, only_if_blank=True)
+    assert plan == [(2, 3, "", "https://sf/opp/A")]          # only Alpha; col 3 = SF OPP LINK
+    # Tax ID column is also writable (org-nr backfill), blank-only
+    orgnr = {"Alpha FC": "802435-3735", "Beta FC": "868401-1201"}
+    taxplan = _plan_cells(rows, TAX_ID_COLUMN, orgnr, only_if_blank=True)
+    assert taxplan == [(2, 4, "", "802435-3735")]            # only Alpha (Beta already has one)
+    # any non-allowlisted column is refused
+    with _pytest.raises(ValueError):
+        _plan_cells(rows, "Contact Email", {"Alpha FC": "x@y.se"})
+
+
+def test_plan_cells_skips_blank_team_rows_even_with_empty_key():
+    """A blank-team template row must never be matched — even by an accidental '' key (guards the
+    bug where an empty key filled every blank row). Shayan, 2026-06-24."""
+    from league_dataload.v2.gsheet_source import _plan_cells, TAX_ID_COLUMN
+    rows = [
+        ["Team Name", TAX_ID_COLUMN],
+        ["Real FC", ""],
+        ["", ""],           # blank template row
+        ["", ""],
+    ]
+    plan = _plan_cells(rows, TAX_ID_COLUMN, {"": "802435-3735", "Real FC": "111111-1111"})
+    assert plan == [(2, 2, "", "111111-1111")]   # only Real FC; blank rows never matched

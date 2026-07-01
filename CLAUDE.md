@@ -85,13 +85,15 @@ Push order **Account → Contact → Opportunity → OpportunityLineItem** (stag
 - `league_dataload/v2/` — the v2 tool: `gen_sheet`, `load_mcs`, `build_records`, `pricing`,
   `mapping`, `importer`, `picklist_deps`, `__main__` (CLI).
 - `league_dataload/v2/gsheet_source.py` — read a filled Main Camera Sheet straight from a
-  **Google Sheet (`import --gsheet <url|id>`)**. ⛔ **Sheet writes are forbidden with EXACTLY ONE
-  exception** (Shayan, 2026-06-24): the tool may paste an opp's Salesforce link into the
-  **`SF OPP LINK`** column — nothing else, ever. Reads use read-only scopes only; the lone write
-  (`write_opp_links`) targets ONLY that column (pure `_plan_link_cells` can't return any other
-  column; each cell written via a single `update_cell`). Needs a service-account key
-  (`--gsheet-creds` / `$GOOGLE_SHEETS_CREDENTIALS`; Viewer to read, Editor to write the link);
-  Config comes from a local `--config <xlsx>`.
+  **Google Sheet (`import --gsheet <url|id>`)**. ⛔ **Sheet writes are forbidden except a tiny
+  ALLOWLIST of columns** (`WRITABLE_COLUMNS`, Shayan 2026-06-24): **`SF OPP LINK`** (paste an opp's
+  SF link) and **`Tax ID`** (backfill a club's Swedish org-nr, blank cells only). NOTHING else.
+  Reads use read-only scopes only; the sole writer `write_column` refuses any non-allowlisted
+  column, and its cells come from the pure `_plan_cells` (which also enforces the allowlist AND
+  skips blank-team rows) written one `update_cell` at a time. Needs a service-account key
+  (`--gsheet-creds` / `$GOOGLE_SHEETS_CREDENTIALS`; Viewer to read, Editor to write); Config from
+  a local `--config <xlsx>`. NOTE: a Swedish club's org-nr lives in `Younium__Y_Org_Nr__c`
+  (NNNNNN-NNNN); the VAT (`SE…01`) in `Younium__Y_Tax_reg_Nr__c` — cf. the `tax_field_for` routing.
 - `league_dataload/clubmatch/` — vendored clubsports club matcher (exact name beats
   exact-domain-to-a-different-name; proven on WHL 20/23 auto-matched, 3 new).
 - `data/pricebook.csv` — **live multi-currency** (EUR/USD/GBP/SEK, Younium-Spiideo AB; refresh
@@ -101,7 +103,7 @@ Push order **Account → Contact → Opportunity → OpportunityLineItem** (stag
   `python3 -m league_dataload.v2 picklist-deps`). Source of truth for which Position values are
   valid per Sport. NOTE: the gen_sheet `POSITIONS` dropdown is still a flat hand-maintained list
   (no Sport→Position dependency yet) — this file is staged to drive dependent dropdowns later.
-- `tests/` — `pytest -q` → 48/48 (offline).
+- `tests/` — `pytest -q` → 50/50 (offline).
 - Older `league_dataload/` modules (matcher/normalize/emit/…) + `README.md` are the **legacy v1**
   CSV flow — superseded by v2; left for reference.
 
